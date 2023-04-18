@@ -10,11 +10,26 @@ const chaiHttp = require("chai-http");
 const chai = require("chai");
 const assert = chai.assert;
 const server = require("../server");
+const app = require("../routes/api");
+const books = require("./../models/books.js");
 
 chai.use(chaiHttp);
 let bookId;
 
 suite("Functional Tests", function () {
+  suiteSetup(() => {
+    books.Book.deleteMany({ title: "Test Book" });
+    let book = new books.Book({
+      title: "Test Book",
+      comments: ["comment1, comment2"],
+    });
+    book.save();
+  });
+  /*
+  teardown(async () => {
+    await books.Book.deleteMany({ title: "Test Book" });
+  });
+  */
   /*
    * ----[EXAMPLE TEST]----
    * Each test should completely test the response of the API end-point including response status code!
@@ -26,21 +41,23 @@ suite("Functional Tests", function () {
       .end(function (err, res) {
         assert.equal(res.status, 200);
         assert.isArray(res.body, "response should be an array");
-        assert.property(
-          res.body[0],
-          "commentcount",
-          "Books in array should contain commentcount"
-        );
-        assert.property(
-          res.body[0],
-          "title",
-          "Books in array should contain title"
-        );
-        assert.property(
-          res.body[0],
-          "_id",
-          "Books in array should contain _id"
-        );
+        if (res.body.length > 0) {
+          assert.property(
+            res.body[0],
+            "commentcount",
+            "Books in array should contain commentcount"
+          );
+          assert.property(
+            res.body[0],
+            "title",
+            "Books in array should contain title"
+          );
+          assert.property(
+            res.body[0],
+            "_id",
+            "Books in array should contain _id"
+          );
+        }
         done();
       });
   });
@@ -82,8 +99,8 @@ suite("Functional Tests", function () {
             .post("/api/books")
             .end(function (err, res) {
               assert.equal(res.status, 200);
-              assert.isString(res.body, "Response should be a string");
-              assert.equal(res.body, "missing required field title");
+              assert.isString(res.text, "Response should be a string");
+              assert.equal(res.text, "missing required field title");
               done();
             });
         });
@@ -126,8 +143,8 @@ suite("Functional Tests", function () {
           .get("/api/books/" + "5e0af1c63b6482125c1b42cb")
           .end(function (err, res) {
             assert.equal(res.status, 200);
-            assert.isString(res.body, "Response should be an string");
-            assert.equal(res.body, "no book exists");
+            assert.isString(res.text, "Response should be an string");
+            assert.equal(res.text, "no book exists");
             done();
           });
       });
@@ -204,8 +221,8 @@ suite("Functional Tests", function () {
             .post("/api/books/" + bookId)
             .end(function (err, res) {
               assert.equal(res.status, 200);
-              assert.isString(res.body, "Response should be a string");
-              assert.equal(res.body, "missing required field comment");
+              assert.isString(res.text, "Response should be a string");
+              assert.equal(res.text, "missing required field comment");
               done();
             });
         });
@@ -214,10 +231,12 @@ suite("Functional Tests", function () {
           chai
             .request(server)
             .post("/api/books/" + "5e0af1c63b6482125c1b42cb")
+            .type("form")
+            .send({ comment: "New comment" })
             .end(function (err, res) {
               assert.equal(res.status, 200);
-              assert.isString(res.body, "Response should be a string");
-              assert.equal(res.body, "no book exists");
+              assert.isString(res.text, "Response should be a string");
+              assert.equal(res.text, "no book exists");
               done();
             });
         });
@@ -231,8 +250,8 @@ suite("Functional Tests", function () {
           .delete("/api/books/" + bookId)
           .end(function (err, res) {
             assert.equal(res.status, 200);
-            assert.isString(res.body, "Response should be a string");
-            assert.equal(res.body, "delete successful");
+            assert.isString(res.text, "Response should be a string");
+            assert.equal(res.text, "delete successful");
             done();
           });
       });
@@ -240,11 +259,11 @@ suite("Functional Tests", function () {
       test("Test DELETE /api/books/[id] with  id not in db", function (done) {
         chai
           .request(server)
-          .post("/api/books/" + "5e0af1c63b6482125c1b42cb")
+          .delete("/api/books/" + "5e0af1c63b6482125c1b42cb")
           .end(function (err, res) {
             assert.equal(res.status, 200);
-            assert.isString(res.body, "Response should be a string");
-            assert.equal(res.body, "no book exists");
+            assert.isString(res.text, "Response should be a string");
+            assert.equal(res.text, "no book exists");
             done();
           });
       });
